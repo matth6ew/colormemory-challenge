@@ -63,7 +63,7 @@ const $=id=>document.getElementById(id),esc=s=>String(s).replace(/[&<>"]/g,c=>({
 const PF='memchal_v1_',mem={};
 const st={get(k){try{const v=localStorage.getItem(PF+k);return v===null?(mem[k]??null):v}catch(e){return mem[k]??null}},set(k,v){mem[k]=v;try{localStorage.setItem(PF+k,v)}catch(e){}}};
 /* ---- Configurazione ---- */
-const DEF={n:['Squadra 1','Squadra 2'],tc:['#ff4d6d','#2ec4ff'],X:180,Y:120,Z:300,t:120,k:10,rows:10,cols:10,nc:6,
+const DEF={n:['Squadra 1','Squadra 2'],tc:['#ff4d6d','#2ec4ff'],np:[10,10],X:180,Y:120,Z:300,t:120,k:10,rows:10,rows2:10,cols:10,nc:6,
 pal:['#e63946','#1d6fe0','#2fb344','#f5d90a','#8e44ad','#ff8c1a','#14b8a6','#ec4899'],noadj:false,bal:true,acc:false,pen:0,snd:true,seed:'',roster:''};
 let cfg=JSON.parse(JSON.stringify(DEF));
 try{const c=JSON.parse(st.get('cfg')||'null');if(c)cfg=Object.assign(cfg,c)}catch(e){}
@@ -71,6 +71,7 @@ const SY=['▲','■','◆','★','✚','♥','●','✖'];
 const PN=['Impostazioni','Regole','Strategia','Scelta vantaggio','Memorizzazione','Esecuzione','Tempo scaduto!'];
 const STEPS=['Regole','Strategia','Vantaggio','Memoria','Esecuzione','Fine'];
 const TIMED={2:1,4:1,5:1};
+const RW=i=>i?cfg.rows2:cfg.rows;   // righe della squadra i (le colonne sono uguali per tutti)
 const dur=p=>p==2?cfg.X:p==4?cfg.Y:p==5?cfg.Z:0;
 /* ---- Stato partita ---- */
 let g={ph:0,rem:0,run:false,end:0,pts:[0,0],adv:[false,false],seqs:null,reg:[0,0],ver:0,err:[[],[]],fin:[null,null],saved:false,mid:0},lastV=[false,false],lastS=-1,lastSave=0;
@@ -79,7 +80,7 @@ const save=()=>st.set('state',JSON.stringify({ph:g.ph,rem:g.rem,pts:g.pts,adv:g.
 /* ---- Generatore con seed (mulberry32) ---- */
 function seedNum(s){s=String(s);if(/^\d+$/.test(s))return +s>>>0;let h=2166136261;for(const ch of s){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
 function rng(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
-function gen(i){const R=cfg.rows,C=cfg.cols,k=cfg.nc,n=R*C,r=rng(seedNum(cfg.seed)+(i+1)*1000003+g.reg[i]*7919),a=[],q=[];
+function gen(i){const R=RW(i),C=cfg.cols,k=cfg.nc,n=R*C,r=rng(seedNum(cfg.seed)+(i+1)*1000003+g.reg[i]*7919),a=[],q=[];
  for(let c=0;c<k;c++)q[c]=Math.floor(n/k)+(c<n%k?1:0);
  for(let p=0;p<n;p++){const L=p%C?a[p-1]:-1,U=p>=C?a[p-C]:-1;let o=[];
   for(let c=0;c<k;c++)if(!(cfg.noadj&&(c===L||c===U)))o.push(c);
@@ -101,7 +102,7 @@ document.addEventListener('visibilitychange',()=>{if(g.run)wake()});
 const fmt=ms=>{const s=Math.max(0,Math.ceil(ms/1000));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
 const el5=()=>cfg.Z*1000-g.rem;
 /* punteggio = bicchieri corretti - penalita' vantaggio; tempo di fine in ms dall'inizio di Z */
-const NN=()=>cfg.rows*cfg.cols,tot=i=>NN()-g.err[i].length-(g.adv[i]?cfg.pen:0),fmtT=ms=>{if(ms==null)return'—';const s=ms/1000;return Math.floor(s/60)+':'+(s%60).toFixed(1).padStart(4,'0')};
+const NN=i=>RW(i)*cfg.cols,tot=i=>Math.round(((NN(i)-g.err[i].length)/NN(i)*100-(g.adv[i]?cfg.pen:0))*10)/10,fmtT=ms=>{if(ms==null)return'—';const s=ms/1000;return Math.floor(s/60)+':'+(s%60).toFixed(1).padStart(4,'0')};
 function vis(i){if(!g.seqs)return false;const p=g.ph;if(p===4||p===6)return true;if(p===5&&g.adv[i]){const e=el5();return e>=cfg.t*1000&&e<(cfg.t+cfg.k)*1000}return false}
 function toast(m){const t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,5000)}
 function validate(){const e=[];if(cfg.t+cfg.k>cfg.Z)e.push('Attenzione: t + k ('+fmt((cfg.t+cfg.k)*1000)+') supera la durata Z ('+fmt(cfg.Z*1000)+'): la rivelazione verrebbe tagliata.');return e}
@@ -117,8 +118,8 @@ function newGame(){if(confirm('Iniziare una nuova partita? Punteggi e sequenze v
 function tglAdv(i){if(g.ph===3){g.adv[i]=!g.adv[i];render();save()}}
 function fscr(){try{if(document.fullscreenElement)document.exitFullscreen();else if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen()}catch(e){}}
 /* ---- Rendering ---- */
-function gridHTML(i){const R=cfg.rows,C=cfg.cols,s=g.seqs[i],f=Math.min(50/(C+1),6);
- let h=`<div class="grid" style="grid-template-columns:.7fr repeat(${C},1fr);grid-template-rows:.7fr repeat(${R},1fr);--f:${f}"><b></b>`;
+function gridHTML(i){const R=RW(i),C=cfg.cols,s=g.seqs[i],f=Math.min(50/(C+1),6),K=(C+.7)/(R+.7);
+ let h=`<div class="grid" style="width:min(100cqw,calc(100cqh*${K}));height:min(100cqh,calc(100cqw/${K}));grid-template-columns:.7fr repeat(${C},1fr);grid-template-rows:.7fr repeat(${R},1fr);--f:${f}"><b></b>`;
  for(let c=0;c<C;c++)h+=`<b class="ix">${String.fromCharCode(65+c)}</b>`;
  for(let r=0;r<R;r++){h+=`<b class="ix">${r+1}</b>`;for(let c=0;c<C;c++){const v=s[r*C+c];const w=g.ph===6&&g.err[i].includes(r*C+c);h+=`<i class="cup${w?' wr':''}" data-t="${i}" data-x="${r*C+c}" style="--c:${cfg.pal[v]}">${cfg.acc?SY[v]:''}</i>`}}
  return h+'</div>'}
@@ -136,7 +137,7 @@ function render(){try{
  if(p===1)h+='Spiega le regole a voce, poi avvia.<button class="big" style="--tc:#4cc9f0" data-a="main">Avvia fase strategia</button>';
  if(p===3){h+=[0,1].map(i=>`<button class="big ${g.adv[i]?'on':''}" style="--tc:${cfg.tc[i]}" data-a="adv${i}">${esc(cfg.n[i])} vuole il vantaggio ${g.adv[i]?'✓':''}</button>`).join('')+'<button class="big" style="--tc:#4cc9f0" data-a="main">Conferma e avvia memorizzazione</button>'}
  if(p===5)h+='<div id="advin"></div>'+[0,1].map(i=>`<button class="big ${g.fin[i]!=null?'on':''}" style="--tc:${cfg.tc[i]}" data-a="fin${i}">${esc(cfg.n[i])} ${g.fin[i]!=null?'ha finito in '+fmtT(g.fin[i]):'ha finito'} <small style="opacity:.6;font-size:.6em">${i?'Pag↑':'Pag↓'}</small></button>`).join('');
- if(p===6){h+='<div style="font-size:3.2cqw;color:#9aa4d6">Tocca i bicchieri sbagliati</div>'+[0,1].map(i=>`<div class="sc" style="color:${cfg.tc[i]};justify-content:center"><div>${esc(cfg.n[i])}: ${tot(i)}<small>Corretti ${NN()-g.err[i].length}/${NN()}${g.adv[i]&&cfg.pen?' · penalità −'+cfg.pen:''} · tempo ${fmtT(g.fin[i])}</small></div></div>`).join('')+`<button class="big" style="--tc:#4cc9f0" data-a="save">${g.saved?'Salvato ✓ (aggiorna)':'Salva in classifica'}</button><button class="big" style="--tc:#8d96c9" data-a="main">Nuova partita</button>`}
+ if(p===6){h+='<div style="font-size:3.2cqw;color:#9aa4d6">Tocca i bicchieri sbagliati</div>'+[0,1].map(i=>`<div class="sc" style="color:${cfg.tc[i]};justify-content:center"><div>${esc(cfg.n[i])}: ${tot(i)}%<small>Corretti ${NN(i)-g.err[i].length}/${NN(i)}${g.adv[i]&&cfg.pen?' · penalità −'+cfg.pen+'%':''} · tempo ${fmtT(g.fin[i])}</small></div></div>`).join('')+`<button class="big" style="--tc:#4cc9f0" data-a="save">${g.saved?'Salvato ✓ (aggiorna)':'Salva in classifica'}</button><button class="big" style="--tc:#8d96c9" data-a="main">Nuova partita</button>`}
  $('mid').innerHTML=h+'</div>';
  $('bM').textContent=p===0?'Impostazioni':p===1?'Avvia strategia':p===3?'Conferma':p===6?'Nuova partita':g.run?'⏸ Pausa':'▶ '+(g.rem<dur(p)*1000?'Riprendi':'Avvia');
  tickUI();
@@ -159,8 +160,8 @@ function tick(){try{
  tickUI()}catch(e){console.error(e)}}
 setInterval(tick,100);
 /* ---- Impostazioni ---- */
-const F=[['n0','Nome squadra 1','text'],['tc0','Colore squadra 1','color'],['n1','Nome squadra 2','text'],['tc1','Colore squadra 2','color'],['X','Strategia X (m:ss)','time'],['Y','Memorizzazione Y (m:ss)','time'],['Z','Esecuzione Z (m:ss)','time'],['t','Vantaggio dopo t (m:ss)','time'],['k','Rivelazione k (m:ss)','time'],['rows','Righe (3-15)','num',3,15],['cols','Colonne (3-15)','num',3,15],['nc','Numero colori (2-8)','num',2,8],['pen','Penalità vantaggio (punti)','num',0,99],['noadj','Evita adiacenti dello stesso colore','chk'],['bal','Distribuzione colori bilanciata','chk'],['acc','Modalità accessibile (simboli)','chk'],['snd','Suoni attivi','chk']];
-const gv=k=>{const m=k.match(/^(n|tc)(\d)$/);return m?cfg[m[1]][m[2]]:cfg[k]},sv=(k,v)=>{const m=k.match(/^(n|tc)(\d)$/);if(m)cfg[m[1]][m[2]]=v;else cfg[k]=v};
+const F=[['n0','Nome squadra 1','text'],['tc0','Colore squadra 1','color'],['n1','Nome squadra 2','text'],['tc1','Colore squadra 2','color'],['np0','Componenti squadra 1','num',1,99],['np1','Componenti squadra 2','num',1,99],['X','Strategia X (m:ss)','time'],['Y','Memorizzazione Y (m:ss)','time'],['Z','Esecuzione Z (m:ss)','time'],['t','Vantaggio dopo t (m:ss)','time'],['k','Rivelazione k (m:ss)','time'],['rows','Righe squadra 1 (3-15)','num',3,15],['rows2','Righe squadra 2 (3-15)','num',3,15],['cols','Colonne (3-15)','num',3,15],['nc','Numero colori (2-8)','num',2,8],['pen','Penalità vantaggio (% di punteggio)','num',0,99],['noadj','Evita adiacenti dello stesso colore','chk'],['bal','Distribuzione colori bilanciata','chk'],['acc','Modalità accessibile (simboli)','chk'],['snd','Suoni attivi','chk']];
+const gv=k=>{const m=k.match(/^(n|tc|np)(\d)$/);return m?cfg[m[1]][m[2]]:cfg[k]},sv=(k,v)=>{const m=k.match(/^(n|tc|np)(\d)$/);if(m)cfg[m[1]][m[2]]=v;else cfg[k]=v};
 const parseT=s=>{s=s.trim();let m=s.match(/^(\d+):([0-5]?\d)$/);if(m)return +m[1]*60+ +m[2];return/^\d+$/.test(s)?+s:null};
 function openSet(){$('set').hidden=false;buildSet()}
 function closeSet(){$('set').hidden=true;if(g.ph>0&&!g.seqs)generate();render()}
@@ -177,20 +178,20 @@ $('set').addEventListener('change',e=>{const el=e.target,k=el.dataset.k;if(!k)re
  else if(f&&f[2]==='time'){v=parseT(v);if(v===null||v<(k==='t'?0:1))v=gv(k)}
  else if(f&&f[2]==='num')v=Math.max(f[3],Math.min(f[4],Math.round(+v)||f[3]));
  if(/^p\d$/.test(k))cfg.pal[+k[1]]=v;else sv(k,v);
- if(['rows','cols','nc','noadj','bal','seed'].includes(k))g.seqs=null;
+ if(['rows','rows2','cols','nc','noadj','bal','seed'].includes(k))g.seqs=null;
  saveCfg();buildSet();render()});
 function preview(){if(!confirm('Le sequenze sono segrete: mostrarle ora?'))return;if(!g.seqs)generate();const o=$('prv');o.innerHTML=`<div style="width:100%"><div class="prev">${[0,1].map(i=>`<div class="side" style="--tc:${cfg.tc[i]}"><h2>${esc(cfg.n[i])}</h2><div class="gbox">${gridHTML(i)}</div></div>`).join('')}</div><div class="btns" style="justify-content:center"><button class="b p" data-a="cprv">Chiudi anteprima</button></div></div>`;o.hidden=false}
 function start(){if(validate().length){toast('Correggi gli avvisi prima di iniziare');return}if(!g.seqs)generate();g.pts=[0,0];g.adv=[false,false];g.fin=[null,null];g.err=[[],[]];g.saved=false;g.mid=Date.now();$('set').hidden=true;go(1,false)}
 /* ---- Tempo di fine, classifica ---- */
 function fin(i){if(g.ph!==5)return;g.fin[i]=g.fin[i]==null?Math.max(0,Math.round(el5())):null;render();save()}
 const getB=()=>{try{return JSON.parse(st.get('board')||'[]')}catch(e){return[]}},saveB=b=>st.set('board',JSON.stringify(b));
-function saveBoard(){if(g.ph!==6)return;const b=getB().filter(x=>x.mid!==g.mid);[0,1].forEach(i=>b.push({mid:g.mid,n:cfg.n[i],c:cfg.tc[i],s:tot(i),t:g.fin[i],a:g.adv[i]?1:0,p:g.adv[i]?cfg.pen:0}));saveB(b);g.saved=true;save();render();toast('Risultato salvato in classifica')}
+function saveBoard(){if(g.ph!==6)return;const b=getB().filter(x=>x.mid!==g.mid);[0,1].forEach(i=>b.push({mid:g.mid,n:cfg.n[i],c:cfg.tc[i],s:tot(i),t:g.fin[i],m:cfg.np[i],a:g.adv[i]?1:0,p:g.adv[i]?cfg.pen:0}));saveB(b);g.saved=true;save();render();toast('Risultato salvato in classifica')}
 function openLb(){$('lb').hidden=false;buildLb()}
 function buildLb(){const b=getB().map((x,i)=>({...x,i}));
  b.sort((a,c)=>c.s-a.s||(a.t??1e12)-(c.t??1e12)||a.n.localeCompare(c.n));   // punti, poi tempo minore
- let rk=0,h='<div class="pnl" style="width:min(1100px,100%)"><h1>🏆 Classifica</h1><table class="lbt"><tr><th>#</th><th>Squadra</th><th>Punti</th><th>Tempo</th><th>Vantaggio</th><th></th></tr>';
- b.forEach((x,j)=>{const p=b[j-1];if(!p||p.s!==x.s||(p.t??-1)!==(x.t??-1))rk=j+1;h+=`<tr><td>${rk} ${['🥇','🥈','🥉'][rk-1]||''}</td><td style="color:${x.c}">${esc(x.n)}</td><td>${x.s}</td><td>${fmtT(x.t)}</td><td>${x.a?'👀'+(x.p?' −'+x.p:''):''}</td><td><button class="b d" data-a="del" data-i="${x.i}">✕</button></td></tr>`});
- const pl=new Set(b.map(x=>x.n));cfg.roster.split('\n').map(x=>x.trim()).filter(x=>x&&!pl.has(x)).forEach(x=>h+=`<tr class="np"><td>–</td><td>${esc(x)}</td><td colspan="4">da giocare</td></tr>`);
+ let rk=0,h='<div class="pnl" style="width:min(1100px,100%)"><h1>🏆 Classifica</h1><table class="lbt"><tr><th>#</th><th>Squadra</th><th>Persone</th><th>Punteggio</th><th>Tempo</th><th>Vantaggio</th><th></th></tr>';
+ b.forEach((x,j)=>{const p=b[j-1];if(!p||p.s!==x.s||(p.t??-1)!==(x.t??-1))rk=j+1;h+=`<tr><td>${rk} ${['🥇','🥈','🥉'][rk-1]||''}</td><td style="color:${x.c}">${esc(x.n)}</td><td>${x.m||''}</td><td>${x.s}%</td><td>${fmtT(x.t)}</td><td>${x.a?'👀'+(x.p?' −'+x.p:''):''}</td><td><button class="b d" data-a="del" data-i="${x.i}">✕</button></td></tr>`});
+ const pl=new Set(b.map(x=>x.n));cfg.roster.split('\n').map(x=>x.trim()).filter(x=>x&&!pl.has(x)).forEach(x=>h+=`<tr class="np"><td>–</td><td>${esc(x)}</td><td colspan="5">da giocare</td></tr>`);
  $('lb').innerHTML=h+'</table><div class="btns"><button class="b p" data-a="clb">Chiudi</button><button class="b d" data-a="lbz">Azzera classifica</button></div></div>'}
 /* ---- Azioni (delegate) ---- */
 const A={main,prev,next,reset,fs:fscr,set:openSet,help:()=>$('hlp').hidden=false,close:()=>{$('hlp').hidden=true;closeSet()},gen:()=>{generate();buildSet()},rg0:()=>{regen(0);buildSet()},rg1:()=>{regen(1);buildSet()},prv:preview,cprv:()=>$('prv').hidden=true,start,
@@ -212,7 +213,7 @@ let hT;function showBar(){$('bar2').classList.remove('h');document.body.classLis
 document.addEventListener('mousemove',showBar);showBar();
 /* ---- Avvio: ripristino stato dopo ricarico ---- */
 try{const s=JSON.parse(st.get('state')||'null');
- if(s&&s.ph>0&&s.ph<=6&&s.seqs&&s.seqs[0].length===cfg.rows*cfg.cols){g.ph=s.ph;g.rem=s.rem;g.pts=s.pts||[0,0];g.adv=s.adv||[false,false];g.seqs=s.seqs;g.reg=s.reg||[0,0];g.ver=s.ver||0;g.err=s.err||[[],[]];g.fin=s.fin||[null,null];g.saved=!!s.saved;g.mid=s.mid||0;g.run=false;
+ if(s&&s.ph>0&&s.ph<=6&&s.seqs&&s.seqs[0].length===cfg.rows*cfg.cols&&s.seqs[1]&&s.seqs[1].length===cfg.rows2*cfg.cols){g.ph=s.ph;g.rem=s.rem;g.pts=s.pts||[0,0];g.adv=s.adv||[false,false];g.seqs=s.seqs;g.reg=s.reg||[0,0];g.ver=s.ver||0;g.err=s.err||[[],[]];g.fin=s.fin||[null,null];g.saved=!!s.saved;g.mid=s.mid||0;g.run=false;
   toast('Partita ripristinata dopo il ricarico: timer in PAUSA')}}catch(e){}
 render();if(g.ph===0)openSet();
 })();
