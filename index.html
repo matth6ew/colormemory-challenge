@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Memory Challenge</title><meta name="description" content="Gestore di gioco di memoria a squadre">
+<meta name="robots" content="noindex, nofollow"><meta name="theme-color" content="#0a0e1f">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M6 4h20l-3 24H9z' fill='%23e63946'/%3E%3Cpath d='M8 9h16' stroke='%23fff' stroke-width='2'/%3E%3C/svg%3E">
+<style>
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;background:#0a0e1f;color:#eef1ff;font-family:system-ui,-apple-system,Segoe UI,sans-serif;overflow:hidden}
+button,input{font:inherit}
+#app{height:100%;display:grid;grid-template-columns:1fr minmax(260px,26vw) 1fr;gap:1.2vmin;padding:1.5vmin}
+.side{display:flex;flex-direction:column;min-width:0;min-height:0;border:.4vmin solid var(--tc);border-radius:2vmin;background:#111733;padding:1.2vmin;position:relative}
+.side h2{font-size:clamp(20px,3.4vw,64px);text-align:center;color:var(--tc);font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rc{position:absolute;top:1vmin;right:1.5vmin;font-weight:900;font-size:clamp(16px,2vw,40px);color:#fff}
+.side.rev{animation:glow 1s infinite alternate}
+@keyframes glow{from{box-shadow:0 0 1vmin var(--tc)}to{box-shadow:0 0 5vmin var(--tc),inset 0 0 3vmin var(--tc)}}
+.gbox{flex:1;min-height:0;container-type:size;display:flex;align-items:center;justify-content:center;animation:fi .5s}
+@keyframes fi{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}
+.grid{width:min(100cqw,100cqh);height:min(100cqw,100cqh);display:grid;container-type:size}
+.ix{display:flex;align-items:center;justify-content:center;font-size:calc(var(--f)*1cqw);color:#8d96c9;font-weight:800;font-style:normal}
+.cup{margin:7%;border-radius:50%;background:radial-gradient(circle at 32% 28%,#fffa 0 9%,#fff0 24%),radial-gradient(circle at 50% 50%,#0000 55%,#0007 100%),var(--c);border:max(2px,.3cqw) solid #ffffff55;box-shadow:0 .3cqw .6cqw #0008;display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:900;font-size:calc(var(--f)*1cqw);color:#fff;text-shadow:0 0 3px #000,0 0 3px #000}
+.hid{width:min(100cqw,100cqh);height:min(100cqw,100cqh);border-radius:2cqw;background:repeating-linear-gradient(45deg,#1a2147 0 12px,#151b3d 12px 24px);display:flex;align-items:center;justify-content:center;font-size:45cqmin;font-weight:900;color:#ffffff30;border:2px dashed #ffffff25;animation:br 4s infinite}
+@keyframes br{50%{opacity:.7}}
+.mid{container-type:inline-size;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.2cqw;text-align:center;min-height:0;overflow:hidden}
+.pn{font-size:8cqw;font-weight:900;letter-spacing:.05em;text-transform:uppercase}
+.time{font-size:23cqw;font-weight:900;font-variant-numeric:tabular-nums;line-height:1}
+.time.warn{color:#ff9f1c}.time.crit{color:#ff3b4e}.time.pulse{animation:pu 1s infinite}
+@keyframes pu{50%{transform:scale(1.07)}}
+.bar{width:90%;height:2.5cqw;background:#1b2250;border-radius:9px;overflow:hidden}.bar u{display:block;height:100%;background:#4cc9f0;width:0;transition:width .15s linear}
+.steps{display:flex;flex-wrap:wrap;gap:1cqw;justify-content:center}
+.steps span{font-size:3.6cqw;padding:.6cqw 1.8cqw;border-radius:99px;background:#1b2250;color:#7f89bd}.steps .on{background:#4cc9f0;color:#06122b;font-weight:800}.steps .dn{color:#cfd5ff}
+.bd{font-size:5cqw;font-weight:900;padding:.8cqw 2.5cqw;border-radius:12px;background:var(--tc);color:#06122b;margin:.4cqw}
+#ex{font-size:4.4cqw;width:94%}
+.big{display:block;width:100%;margin:1.2cqw 0;padding:3cqw;font-size:5.4cqw;font-weight:900;border-radius:14px;border:.8cqw solid var(--tc);background:#111733;color:#fff;cursor:pointer}
+.big.on{background:var(--tc);color:#06122b}
+.sc{display:flex;align-items:center;justify-content:space-between;gap:1cqw;margin:1cqw 0;font-weight:800}.sc small{display:block;font-size:3cqw;color:#9aa4d6;font-weight:500}
+.sc button{width:9cqw;height:9cqw;border-radius:50%;border:0;font-size:6cqw;font-weight:900;cursor:pointer}
+#bar2{position:fixed;left:50%;bottom:1.5vmin;transform:translateX(-50%);display:flex;gap:6px;padding:6px 8px;background:#000c;border:1px solid #ffffff30;border-radius:12px;transition:opacity .4s;z-index:5}
+#bar2.h{opacity:0;pointer-events:none}body.h{cursor:none}
+button.b{background:#232c5e;color:#fff;border:0;border-radius:8px;padding:8px 12px;font-size:14px;cursor:pointer}button.b:hover{background:#34408a}button.p{background:#4cc9f0;color:#06122b;font-weight:800}button.d{background:#7a1f2b}
+.ov{position:fixed;inset:0;background:#000d;z-index:10;overflow:auto;display:flex;justify-content:center;padding:2vmin}.ov[hidden]{display:none}
+.pnl{background:#111733;border:1px solid #3a4590;border-radius:16px;padding:22px;width:min(900px,100%);height:max-content}
+.pnl h1{font-size:26px}.pnl h1 small{font-size:13px;color:#8d96c9;font-weight:400}.pnl h3{margin:14px 0 6px}
+.fg{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;margin-top:12px}
+label{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px}
+input:not([type=checkbox]):not([type=color]){width:110px;background:#0a0e1f;color:#fff;border:1px solid #3a4590;border-radius:6px;padding:6px}input[type=color]{width:46px;height:34px;border:0;background:none}
+.pal{display:flex;gap:8px;flex-wrap:wrap}.er{color:#ff6b7a;margin-top:10px;font-weight:700}.ok{color:#7ee787;margin-top:8px}.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.prev{display:flex;gap:2vmin;width:100%;height:80vh}.prev .side{flex:1}
+#toast{position:fixed;top:2vmin;left:50%;transform:translateX(-50%);background:#ffb703;color:#111;padding:10px 20px;border-radius:10px;font-weight:800;z-index:20}#toast[hidden]{display:none}
+</style></head><body>
+<div id="app"><section class="side" id="s0"></section><section class="mid" id="mid"></section><section class="side" id="s1"></section></div>
+<div id="bar2">
+<button class="b" data-a="prev" title="Fase precedente (←)">◀ Prec</button><button class="b p" data-a="main" id="bM">Avvia</button><button class="b" data-a="next" title="Fase successiva (→)">Succ ▶</button>
+<button class="b d" data-a="reset" title="R">Reset</button><button class="b" data-a="fs" title="F">Schermo intero</button><button class="b" data-a="set" title="S">⚙ Impostazioni</button><button class="b" data-a="help">?</button></div>
+<div class="ov" id="set" hidden></div><div class="ov" id="hlp" hidden><div class="pnl"><h1>Scorciatoie</h1><p style="line-height:1.9;margin-top:10px"><b>Spazio</b> avvia/pausa · <b>→</b> fase successiva · <b>←</b> fase precedente · <b>1</b>/<b>2</b> vantaggio squadra 1/2 (solo nella scelta) · <b>F</b> schermo intero · <b>R</b> reset · <b>S</b> impostazioni · <b>?</b> questo aiuto · <b>Esc</b> chiude i pannelli</p><div class="btns"><button class="b p" data-a="close">Chiudi</button></div></div></div>
+<div class="ov" id="prv" hidden></div><div id="toast" hidden></div>
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+/* ---- Storage sicuro (fallback in memoria) ---- */
+const PF='memchal_v1_',mem={};
+const st={get(k){try{const v=localStorage.getItem(PF+k);return v===null?(mem[k]??null):v}catch(e){return mem[k]??null}},set(k,v){mem[k]=v;try{localStorage.setItem(PF+k,v)}catch(e){}}};
+/* ---- Configurazione ---- */
+const DEF={n:['Squadra 1','Squadra 2'],tc:['#ff4d6d','#2ec4ff'],X:180,Y:120,Z:300,t:120,k:10,rows:10,cols:10,nc:6,
+pal:['#e63946','#1d6fe0','#2fb344','#f5d90a','#8e44ad','#ff8c1a','#14b8a6','#ec4899'],noadj:false,bal:true,acc:false,pen:0,snd:true,seed:''};
+let cfg=JSON.parse(JSON.stringify(DEF));
+try{const c=JSON.parse(st.get('cfg')||'null');if(c)cfg=Object.assign(cfg,c)}catch(e){}
+const SY=['▲','■','◆','★','✚','♥','●','✖'];
+const PN=['Impostazioni','Regole','Strategia','Scelta vantaggio','Memorizzazione','Esecuzione','Tempo scaduto!'];
+const STEPS=['Regole','Strategia','Vantaggio','Memoria','Esecuzione','Fine'];
+const TIMED={2:1,4:1,5:1};
+const dur=p=>p==2?cfg.X:p==4?cfg.Y:p==5?cfg.Z:0;
+/* ---- Stato partita ---- */
+let g={ph:0,rem:0,run:false,end:0,pts:[0,0],adv:[false,false],seqs:null,reg:[0,0],ver:0},lastV=[false,false],lastS=-1,lastSave=0;
+const saveCfg=()=>st.set('cfg',JSON.stringify(cfg));
+const save=()=>st.set('state',JSON.stringify({ph:g.ph,rem:g.rem,pts:g.pts,adv:g.adv,seqs:g.seqs,reg:g.reg,ver:g.ver}));
+/* ---- Generatore con seed (mulberry32) ---- */
+function seedNum(s){s=String(s);if(/^\d+$/.test(s))return +s>>>0;let h=2166136261;for(const ch of s){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
+function rng(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gen(i){const R=cfg.rows,C=cfg.cols,k=cfg.nc,n=R*C,r=rng(seedNum(cfg.seed)+(i+1)*1000003+g.reg[i]*7919),a=[],q=[];
+ for(let c=0;c<k;c++)q[c]=Math.floor(n/k)+(c<n%k?1:0);
+ for(let p=0;p<n;p++){const L=p%C?a[p-1]:-1,U=p>=C?a[p-C]:-1;let o=[];
+  for(let c=0;c<k;c++)if(!(cfg.noadj&&(c===L||c===U)))o.push(c);
+  if(!o.length)o=[...Array(k).keys()];            // k=2 puo' creare conflitti inevitabili
+  let ch;if(cfg.bal){const tot=o.reduce((s,c)=>s+Math.max(q[c],0),0);if(tot>0){let x=r()*tot;for(const c of o){x-=Math.max(q[c],0);if(x<0){ch=c;break}}}}
+  if(ch===undefined)ch=o[Math.floor(r()*o.length)];
+  q[ch]--;a.push(ch)}
+ return a}
+function generate(){if(!cfg.seed){cfg.seed=String(Math.floor(Math.random()*1e6)).padStart(6,'0');saveCfg()}g.reg=[0,0];g.seqs=[gen(0),gen(1)];g.ver++;save()}
+function regen(i){if(!g.seqs)generate();g.reg[i]++;g.seqs[i]=gen(i);g.ver++;save()}
+/* ---- Audio (Web Audio, nessun file) ---- */
+let ac;function unlock(){try{if(!ac){const A=window.AudioContext||window.webkitAudioContext;if(A)ac=new A()}if(ac&&ac.state==='suspended')ac.resume()}catch(e){}}
+function beep(f,d,v=.2,w=0,ty='sine'){if(!cfg.snd||!ac)return;try{const o=ac.createOscillator(),gn=ac.createGain(),t=ac.currentTime+w;o.type=ty;o.frequency.value=f;gn.gain.setValueAtTime(0,t);gn.gain.linearRampToValueAtTime(v,t+.01);gn.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(gn);gn.connect(ac.destination);o.start(t);o.stop(t+d+.05)}catch(e){}}
+const snd={ph:()=>{beep(660,.25);beep(880,.3,.2,.28)},tick:()=>beep(1000,.06,.12),as:()=>[523,659,784].forEach((f,i)=>beep(f,.15,.2,i*.12)),ae:()=>[784,659,523].forEach((f,i)=>beep(f,.15,.2,i*.12)),end:()=>{for(let i=0;i<8;i++)beep(i%2?740:988,.3,.28,i*.35,'square')}};
+/* ---- Wake Lock ---- */
+let wl=null;async function wake(){try{if('wakeLock' in navigator&&!wl&&document.visibilityState==='visible'){wl=await navigator.wakeLock.request('screen');wl.addEventListener('release',()=>wl=null)}}catch(e){wl=null}}
+document.addEventListener('visibilitychange',()=>{if(g.run)wake()});
+/* ---- Utilita' ---- */
+const fmt=ms=>{const s=Math.max(0,Math.ceil(ms/1000));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
+const el5=()=>cfg.Z*1000-g.rem;
+function vis(i){if(!g.seqs)return false;const p=g.ph;if(p===4||p===6)return true;if(p===5&&g.adv[i]){const e=el5();return e>=cfg.t*1000&&e<(cfg.t+cfg.k)*1000}return false}
+function toast(m){const t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,5000)}
+function validate(){const e=[];if(cfg.t+cfg.k>cfg.Z)e.push('Attenzione: t + k ('+fmt((cfg.t+cfg.k)*1000)+') supera la durata Z ('+fmt(cfg.Z*1000)+'): la rivelazione verrebbe tagliata.');return e}
+/* ---- Navigazione tra fasi ---- */
+function go(p,run){try{if(p>=2&&!g.seqs)generate();g.ph=p;g.rem=dur(p)*1000;g.run=!!run&&!!TIMED[p];if(g.run){g.end=performance.now()+g.rem;wake()}lastS=-1;lastV=[false,false];snd.ph();if(p===6)setTimeout(snd.end,500);render();save()}catch(e){console.error(e)}}
+function main(){const p=g.ph;if(p===0)openSet();else if(p===1)go(2,true);else if(TIMED[p])toggle();else if(p===3)go(4,true);else if(p===6)newGame()}
+function toggle(){if(!TIMED[g.ph])return;if(g.run){g.rem=Math.max(0,g.end-performance.now());g.run=false}else if(g.rem>0){g.run=true;g.end=performance.now()+g.rem;wake()}render();save()}
+function next(){const p=g.ph;if(p===0||p===6)return;go(p+1,true)}
+function prev(){if(g.ph<=1)return;go(g.ph-1,false)}
+function resetAll(keep){g.ph=0;g.run=false;g.pts=[0,0];g.adv=[false,false];if(!keep){cfg.seed='';saveCfg()}g.seqs=null;save();render();openSet()}
+function reset(){if(confirm('Reset partita? Si torna alle impostazioni (stesso seed).'))resetAll(true)}
+function newGame(){if(confirm('Iniziare una nuova partita? Punteggi e sequenze verranno azzerati.'))resetAll(false)}
+function tglAdv(i){if(g.ph===3){g.adv[i]=!g.adv[i];render();save()}}
+function fscr(){try{if(document.fullscreenElement)document.exitFullscreen();else if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen()}catch(e){}}
+/* ---- Rendering ---- */
+function gridHTML(i){const R=cfg.rows,C=cfg.cols,s=g.seqs[i],f=Math.min(50/(C+1),6);
+ let h=`<div class="grid" style="grid-template-columns:.7fr repeat(${C},1fr);grid-template-rows:.7fr repeat(${R},1fr);--f:${f}"><b></b>`;
+ for(let c=0;c<C;c++)h+=`<b class="ix">${String.fromCharCode(65+c)}</b>`;
+ for(let r=0;r<R;r++){h+=`<b class="ix">${r+1}</b>`;for(let c=0;c<C;c++){const v=s[r*C+c];h+=`<i class="cup" style="--c:${cfg.pal[v]}">${cfg.acc?SY[v]:''}</i>`}}
+ return h+'</div>'}
+function render(){try{
+ const v=[vis(0),vis(1)];
+ [0,1].forEach(i=>{const e=$('s'+i);e.style.setProperty('--tc',cfg.tc[i]);
+  const key=[g.ph,v[i],cfg.n[i],g.ver,cfg.acc,cfg.pal.join()].join('|');
+  if(e.dataset.k!==key){e.dataset.k=key;e.innerHTML=`<h2>${esc(cfg.n[i])}</h2><div class="rc" id="rc${i}"></div><div class="gbox">${v[i]&&g.seqs?gridHTML(i):'<div class="hid"><span>?</span></div>'}</div>`}
+  e.classList.toggle('rev',g.ph===5&&v[i])});
+ const p=g.ph;let h=`<div class="pn">${PN[p]}</div><div class="time" id="tm"></div><div class="bar"><u id="bar"></u></div>`;
+ h+='<div class="steps">'+STEPS.map((s,i)=>`<span class="${i+1===p?'on':i+1<p?'dn':''}">${s}</span>`).join('')+'</div>';
+ if(p>=4&&p<=6)h+='<div>'+[0,1].filter(i=>g.adv[i]).map(i=>`<span class="bd" style="--tc:${cfg.tc[i]}">VANTAGGIO · ${esc(cfg.n[i])}</span>`).join('')+'</div>';
+ h+='<div id="ex">';
+ if(p===0)h+='Configura la partita nelle impostazioni.';
+ if(p===1)h+='Spiega le regole a voce, poi avvia.<button class="big" style="--tc:#4cc9f0" data-a="main">Avvia fase strategia</button>';
+ if(p===3){h+=[0,1].map(i=>`<button class="big ${g.adv[i]?'on':''}" style="--tc:${cfg.tc[i]}" data-a="adv${i}">${esc(cfg.n[i])} vuole il vantaggio ${g.adv[i]?'✓':''}</button>`).join('')+'<button class="big" style="--tc:#4cc9f0" data-a="main">Conferma e avvia memorizzazione</button>'}
+ if(p===5)h+='<div id="advin"></div>';
+ if(p===6){h+=[0,1].map(i=>{const pen=g.adv[i]?cfg.pen:0;return `<div class="sc" style="color:${cfg.tc[i]}"><button data-a="m${i}">−</button><div>${esc(cfg.n[i])}: ${g.pts[i]-pen}<small>Punti ${g.pts[i]}${pen?' · penalità vantaggio −'+pen:''}</small></div><button data-a="p${i}">+</button></div>`}).join('')+'<button class="big" style="--tc:#4cc9f0" data-a="main">Nuova partita</button>'}
+ $('mid').innerHTML=h+'</div>';
+ $('bM').textContent=p===0?'Impostazioni':p===1?'Avvia strategia':p===3?'Conferma':p===6?'Nuova partita':g.run?'⏸ Pausa':'▶ '+(g.rem<dur(p)*1000?'Riprendi':'Avvia');
+ tickUI();
+}catch(e){console.error(e)}}
+function tickUI(){const p=g.ph,tm=$('tm');if(!tm)return;
+ const total=dur(p)*1000;tm.textContent=p===1?'--:--':fmt(g.rem);
+ const s=Math.ceil(g.rem/1000),t=!!TIMED[p];
+ tm.className='time'+(t&&s<=10?' crit':t&&s<=30?' warn':'')+(t&&g.run&&s<=10&&s>0?' pulse':'');
+ const b=$('bar');if(b)b.style.width=(t&&total?g.rem/total*100:0)+'%';
+ if(p===5){const e=el5(),a=$('advin');if(a)a.innerHTML=[0,1].filter(i=>g.adv[i]).map(i=>{const x=cfg.t*1000-e;return `<div style="color:${cfg.tc[i]};font-weight:800">${esc(cfg.n[i])}: `+(x>0?'vantaggio tra '+fmt(x):e<(cfg.t+cfg.k)*1000?'RIVELAZIONE IN CORSO':'vantaggio usato')+'</div>'}).join('');
+  [0,1].forEach(i=>{const r=$('rc'+i);if(r)r.textContent=vis(i)?fmt((cfg.t+cfg.k)*1000-e):''})}
+}
+/* ---- Ciclo timer: tempo calcolato da timestamp, nessuna deriva ---- */
+function tick(){try{
+ if(g.run){g.rem=Math.max(0,g.end-performance.now());
+  const s=Math.ceil(g.rem/1000);if(s!==lastS){lastS=s;if(s<=10&&s>0)snd.tick()}
+  if(g.rem<=0){g.run=false;const p=g.ph;if(p===2)go(3,false);else if(p===4)go(5,true);else if(p===5)go(6,false);return}
+  if(Date.now()-lastSave>1000){lastSave=Date.now();save()}}
+ if(g.ph===5){const v=[vis(0),vis(1)];let ch=false;v.forEach((x,i)=>{if(x!==lastV[i]){ch=true;if(g.run||x){x?snd.as():snd.ae()}}});lastV=v;if(ch)render()}
+ tickUI()}catch(e){console.error(e)}}
+setInterval(tick,100);
+/* ---- Impostazioni ---- */
+const F=[['n0','Nome squadra 1','text'],['tc0','Colore squadra 1','color'],['n1','Nome squadra 2','text'],['tc1','Colore squadra 2','color'],['X','Strategia X (m:ss)','time'],['Y','Memorizzazione Y (m:ss)','time'],['Z','Esecuzione Z (m:ss)','time'],['t','Vantaggio dopo t (m:ss)','time'],['k','Rivelazione k (m:ss)','time'],['rows','Righe (3-15)','num',3,15],['cols','Colonne (3-15)','num',3,15],['nc','Numero colori (2-8)','num',2,8],['pen','Penalità vantaggio (punti)','num',0,99],['noadj','Evita adiacenti dello stesso colore','chk'],['bal','Distribuzione colori bilanciata','chk'],['acc','Modalità accessibile (simboli)','chk'],['snd','Suoni attivi','chk']];
+const gv=k=>{const m=k.match(/^(n|tc)(\d)$/);return m?cfg[m[1]][m[2]]:cfg[k]},sv=(k,v)=>{const m=k.match(/^(n|tc)(\d)$/);if(m)cfg[m[1]][m[2]]=v;else cfg[k]=v};
+const parseT=s=>{s=s.trim();let m=s.match(/^(\d+):([0-5]?\d)$/);if(m)return +m[1]*60+ +m[2];return/^\d+$/.test(s)?+s:null};
+function openSet(){$('set').hidden=false;buildSet()}
+function closeSet(){$('set').hidden=true;if(g.ph>0&&!g.seqs)generate();render()}
+function buildSet(){const o=$('set'),sc=o.firstChild?o.firstChild.scrollTop:0,er=validate();
+ let h=`<div class="pnl"><h1>Memory Challenge <small>Versione 1.0</small></h1><div class="fg">`;
+ F.forEach(([k,l,t,a,b])=>{const v=gv(k);h+=`<label>${l}`+(t==='chk'?`<input type="checkbox" data-k="${k}" ${v?'checked':''}>`:t==='num'?`<input type="number" data-k="${k}" min="${a}" max="${b}" value="${v}">`:t==='time'?`<input data-k="${k}" value="${fmt(v*1000)}">`:`<input type="${t}" data-k="${k}" value="${esc(v)}">`)+'</label>'});
+ h+='</div><h3>Palette colori</h3><div class="pal">';for(let c=0;c<cfg.nc;c++)h+=`<input type="color" data-k="p${c}" value="${cfg.pal[c]}">`;
+ h+=`</div><h3>Sequenze</h3><label>Seed (vuoto = casuale)<input data-k="seed" value="${esc(cfg.seed)}"></label>`;
+ h+=er.map(e=>`<div class="er">${e}</div>`).join('')+(g.seqs?`<div class="ok">Sequenze pronte (seed ${esc(cfg.seed)}).</div>`:'<div class="er" style="color:#ffb703">Sequenze non ancora generate.</div>');
+ h+=`<div class="btns"><button class="b" data-a="gen">Genera sequenze</button><button class="b" data-a="rg0">Rigenera sq. 1</button><button class="b" data-a="rg1">Rigenera sq. 2</button><button class="b" data-a="prv">Anteprima sequenze</button><button class="b d" data-a="defs">Ripristina predefiniti</button>`;
+ h+=g.ph===0?'<button class="b p" data-a="start">Inizia</button>':'<button class="b p" data-a="close">Chiudi</button>';o.innerHTML=h+'</div></div>';if(o.firstChild)o.firstChild.scrollTop=sc}
+$('set').addEventListener('change',e=>{const el=e.target,k=el.dataset.k;if(!k)return;let v=el.value;const f=F.find(x=>x[0]===k);
+ if(el.type==='checkbox')v=el.checked;
+ else if(f&&f[2]==='time'){v=parseT(v);if(v===null||v<(k==='t'?0:1))v=gv(k)}
+ else if(f&&f[2]==='num')v=Math.max(f[3],Math.min(f[4],Math.round(+v)||f[3]));
+ if(/^p\d$/.test(k))cfg.pal[+k[1]]=v;else sv(k,v);
+ if(['rows','cols','nc','noadj','bal','seed'].includes(k))g.seqs=null;
+ saveCfg();buildSet();render()});
+function preview(){if(!confirm('Le sequenze sono segrete: mostrarle ora?'))return;if(!g.seqs)generate();const o=$('prv');o.innerHTML=`<div style="width:100%"><div class="prev">${[0,1].map(i=>`<div class="side" style="--tc:${cfg.tc[i]}"><h2>${esc(cfg.n[i])}</h2><div class="gbox">${gridHTML(i)}</div></div>`).join('')}</div><div class="btns" style="justify-content:center"><button class="b p" data-a="cprv">Chiudi anteprima</button></div></div>`;o.hidden=false}
+function start(){if(validate().length){toast('Correggi gli avvisi prima di iniziare');return}if(!g.seqs)generate();g.pts=[0,0];g.adv=[false,false];$('set').hidden=true;go(1,false)}
+/* ---- Azioni (delegate) ---- */
+const A={main,prev,next,reset,fs:fscr,set:openSet,help:()=>$('hlp').hidden=false,close:()=>{$('hlp').hidden=true;closeSet()},gen:()=>{generate();buildSet()},rg0:()=>{regen(0);buildSet()},rg1:()=>{regen(1);buildSet()},prv:preview,cprv:()=>$('prv').hidden=true,start,
+ defs:()=>{if(confirm('Ripristinare i valori predefiniti?')){cfg=JSON.parse(JSON.stringify(DEF));g.seqs=null;saveCfg();buildSet();render()}},
+ adv0:()=>tglAdv(0),adv1:()=>tglAdv(1),m0:()=>sc(0,-1),p0:()=>sc(0,1),m1:()=>sc(1,-1),p1:()=>sc(1,1)};
+function sc(i,d){g.pts[i]+=d;render();save()}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;unlock();wake();try{A[b.dataset.a]&&A[b.dataset.a]()}catch(x){console.error(x)}if(b.blur)b.blur()});
+document.addEventListener('pointerdown',()=>{unlock();wake()});
+document.addEventListener('keydown',e=>{unlock();const k=e.key,ty=e.target.tagName,inp=ty==='INPUT'||ty==='TEXTAREA';
+ if(k==='Escape'){['hlp','prv'].forEach(i=>$(i).hidden=true);if(!$('set').hidden&&g.ph>0)closeSet();return}
+ if(inp||e.ctrlKey||e.metaKey||e.altKey)return;if(!$('set').hidden||!$('prv').hidden)return;
+ const K=k.toLowerCase();
+ if(k===' '){e.preventDefault();if(g.ph!==6&&g.ph!==0)main()}
+ else if(k==='ArrowRight')next();else if(k==='ArrowLeft')prev();
+ else if(k==='1')tglAdv(0);else if(k==='2')tglAdv(1);
+ else if(K==='f')fscr();else if(K==='r')reset();else if(K==='s')openSet();else if(k==='?')$('hlp').hidden=false});
+/* barra comandi: si nasconde dopo 3 s di inattivita' */
+let hT;function showBar(){$('bar2').classList.remove('h');document.body.classList.remove('h');clearTimeout(hT);hT=setTimeout(()=>{$('bar2').classList.add('h');document.body.classList.add('h')},3000)}
+document.addEventListener('mousemove',showBar);showBar();
+/* ---- Avvio: ripristino stato dopo ricarico ---- */
+try{const s=JSON.parse(st.get('state')||'null');
+ if(s&&s.ph>0&&s.ph<=6&&s.seqs&&s.seqs[0].length===cfg.rows*cfg.cols){g.ph=s.ph;g.rem=s.rem;g.pts=s.pts||[0,0];g.adv=s.adv||[false,false];g.seqs=s.seqs;g.reg=s.reg||[0,0];g.ver=s.ver||0;g.run=false;
+  toast('Partita ripristinata dopo il ricarico: timer in PAUSA')}}catch(e){}
+render();if(g.ph===0)openSet();
+})();
+</script></body></html>
